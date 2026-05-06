@@ -1,0 +1,157 @@
+time=0: passenger 1 arrived (class=3, service=7).
+time=0: passenger 2 arrived (class=1, service=12).
+time=0: passenger 1 started at C1; completes at 7.
+time=0: passenger 2 started at C2; completes at 12.
+time=0: counters C3,C4,C5 idle for 1 time unit(s).
+time=1: passenger 3 arrived (class=3, service=5).
+time=1: passenger 3 started at C3; completes at 6.
+time=1: counters C4,C5 idle for 1 time unit(s).
+time=2: passenger 4 arrived (class=2, service=9).
+time=2: passenger 4 started at C4; completes at 11.
+time=2: counters C5 idle for 1 time unit(s).
+time=3: passenger 5 arrived (class=3, service=4).
+time=3: passenger 6 arrived (class=3, service=8).
+time=3: passenger 5 started at C5; completes at 7.
+time=5: passenger 7 arrived (class=1, service=15).
+time=5: passenger 8 arrived (class=2, service=10).
+time=6: passenger 9 arrived (class=3, service=3).
+time=6: passenger 3 completed at C3 (turnaround=5).
+time=6: passenger 9 started at C3; completes at 9.
+time=7: passenger 10 arrived (class=3, service=6).
+time=7: passenger 1 completed at C1 (turnaround=7).
+time=7: passenger 5 completed at C5 (turnaround=4).
+time=7: passenger 10 started at C1; completes at 13.
+time=7: passenger 6 started at C5; completes at 15.
+time=8: passenger 11 arrived (class=2, service=11).
+time=9: passenger 12 arrived (class=3, service=5).
+time=9: passenger 9 completed at C3 (turnaround=3).
+time=9: passenger 12 started at C3; completes at 14.
+time=10: passenger 13 arrived (class=3, service=9).
+time=10: passenger 14 arrived (class=1, service=14).
+time=11: passenger 15 arrived (class=3, service=4).
+time=11: passenger 4 completed at C4 (turnaround=9).
+time=11: passenger 15 started at C4; completes at 15.
+time=12: passenger 16 arrived (class=2, service=8).
+time=12: passenger 2 completed at C2 (turnaround=12).
+time=12: passenger 16 started at C2; completes at 20.
+time=13: passenger 17 arrived (class=3, service=6).
+time=13: passenger 10 completed at C1 (turnaround=6).
+time=13: passenger 17 started at C1; completes at 19.
+time=14: passenger 18 arrived (class=3, service=7).
+time=14: passenger 12 completed at C3 (turnaround=5).
+time=14: passenger 18 started at C3; completes at 21.
+time=15: passenger 19 arrived (class=1, service=13).
+time=15: passenger 15 completed at C4 (turnaround=4).
+time=15: passenger 6 completed at C5 (turnaround=12).
+time=15: passenger 13 started at C4; completes at 24.
+time=15: passenger 8 started at C5; completes at 25.
+time=16: passenger 20 arrived (class=3, service=3).
+time=17: passenger 21 arrived (class=2, service=10).
+time=18: passenger 22 arrived (class=3, service=5).
+time=19: passenger 23 arrived (class=3, service=8).
+time=19: passenger 17 completed at C1 (turnaround=6).
+time=19: passenger 20 started at C1; completes at 22.
+time=20: passenger 24 arrived (class=2, service=7).
+time=20: passenger 16 completed at C2 (turnaround=8).
+time=20: passenger 22 started at C2; completes at 25.
+time=21: passenger 25 arrived (class=3, service=4).
+time=21: passenger 18 completed at C3 (turnaround=7).
+time=21: passenger 25 started at C3; completes at 25.
+time=22: passenger 26 arrived (class=1, service=11).
+time=22: passenger 20 completed at C1 (turnaround=6).
+time=22: passenger 24 started at C1; completes at 29.
+time=23: passenger 27 arrived (class=3, service=6).
+time=24: passenger 13 completed at C4 (turnaround=14).
+time=24: passenger 27 started at C4; completes at 30.
+time=25: passenger 28 arrived (class=3, service=9).
+time=25: passenger 29 arrived (class=2, service=8).
+time=25: passenger 22 completed at C2 (turnaround=7).
+time=25: passenger 25 completed at C3 (turnaround=4).
+time=25: passenger 8 completed at C5 (turnaround=20).
+time=25: passenger 23 started at C2; completes at 33.
+time=25: passenger 29 started at C3; completes at 33.
+time=25: passenger 28 started at C5; completes at 34.
+time=27: passenger 30 arrived (class=3, service=5).
+time=28: passenger 31 arrived (class=3, service=7).
+time=29: passenger 24 completed at C1 (turnaround=9).
+time=29: passenger 30 started at C1; completes at 34.
+time=30: passenger 32 arrived (class=1, service=12).
+time=30: passenger 33 arrived (class=2, service=9).
+time=30: passenger 27 completed at C4 (turnaround=7).
+time=30: passenger 31 started at C4; completes at 37.
+time=31: passenger 34 arrived (class=3, service=3).
+time=33: passenger 35 arrived (class=3, service=6).
+time=33: passenger 23 completed at C2 (turnaround=14).
+time=33: passenger 29 completed at C3 (turnaround=8).
+time=33: passenger 34 started at C2; completes at 36.
+time=33: passenger 35 started at C3; completes at 39.
+time=34: passenger 30 completed at C1 (turnaround=7).
+time=34: passenger 28 completed at C5 (turnaround=9).
+time=34: passenger 33 started at C1; completes at 43.
+time=34: passenger 21 started at C5; completes at 44.
+time=35: passenger 36 arrived (class=3, service=8).
+time=35: passenger 37 arrived (class=2, service=10).
+time=36: passenger 34 completed at C2 (turnaround=5).
+time=36: passenger 36 started at C2; completes at 44.
+time=37: passenger 38 arrived (class=3, service=4).
+time=37: passenger 31 completed at C4 (turnaround=9).
+time=37: passenger 38 started at C4; completes at 41.
+time=38: passenger 39 arrived (class=3, service=7).
+time=39: passenger 35 completed at C3 (turnaround=6).
+time=39: passenger 39 started at C3; completes at 46.
+time=40: passenger 40 arrived (class=1, service=14).
+time=41: passenger 41 arrived (class=3, service=5).
+time=41: passenger 38 completed at C4 (turnaround=4).
+time=41: passenger 41 started at C4; completes at 46.
+time=43: passenger 42 arrived (class=2, service=9).
+time=43: passenger 33 completed at C1 (turnaround=13).
+time=43: passenger 42 started at C1; completes at 52.
+time=44: passenger 43 arrived (class=3, service=6).
+time=44: passenger 36 completed at C2 (turnaround=9).
+time=44: passenger 21 completed at C5 (turnaround=27).
+time=44: passenger 43 started at C2; completes at 50.
+time=44: passenger 37 started at C5; completes at 54.
+time=45: passenger 44 arrived (class=3, service=3).
+time=46: passenger 39 completed at C3 (turnaround=8).
+time=46: passenger 41 completed at C4 (turnaround=5).
+time=46: passenger 44 started at C3; completes at 49.
+time=46: passenger 11 started at C4; completes at 57.
+time=47: passenger 45 arrived (class=3, service=8).
+time=49: passenger 44 completed at C3 (turnaround=4).
+time=49: passenger 45 started at C3; completes at 57.
+time=50: passenger 46 arrived (class=1, service=11).
+time=50: passenger 43 completed at C2 (turnaround=6).
+time=50: passenger 26 started at C2; completes at 61.
+time=52: passenger 47 arrived (class=2, service=7).
+time=52: passenger 42 completed at C1 (turnaround=9).
+time=52: passenger 47 started at C1; completes at 59.
+time=54: passenger 48 arrived (class=3, service=5).
+time=54: passenger 37 completed at C5 (turnaround=19).
+time=54: passenger 48 started at C5; completes at 59.
+time=56: passenger 49 arrived (class=3, service=9).
+time=57: passenger 45 completed at C3 (turnaround=10).
+time=57: passenger 11 completed at C4 (turnaround=49).
+time=57: passenger 49 started at C3; completes at 66.
+time=57: passenger 46 started at C4; completes at 68.
+time=58: passenger 50 arrived (class=3, service=4).
+time=59: passenger 47 completed at C1 (turnaround=7).
+time=59: passenger 48 completed at C5 (turnaround=5).
+time=59: passenger 50 started at C1; completes at 63.
+time=59: passenger 32 started at C5; completes at 71.
+time=61: passenger 26 completed at C2 (turnaround=39).
+time=61: passenger 19 started at C2; completes at 74.
+time=63: passenger 50 completed at C1 (turnaround=5).
+time=63: passenger 14 started at C1; completes at 77.
+time=66: passenger 49 completed at C3 (turnaround=10).
+time=66: passenger 40 started at C3; completes at 80.
+time=68: passenger 46 completed at C4 (turnaround=18).
+time=68: passenger 7 started at C4; completes at 83.
+time=71: passenger 32 completed at C5 (turnaround=41).
+time=71: counters C5 idle for 3 time unit(s).
+time=74: passenger 19 completed at C2 (turnaround=59).
+time=74: counters C2,C5 idle for 3 time unit(s).
+time=77: passenger 14 completed at C1 (turnaround=67).
+time=77: counters C1,C2,C5 idle for 3 time unit(s).
+time=80: passenger 40 completed at C3 (turnaround=40).
+time=80: counters C1,C2,C3,C5 idle for 3 time unit(s).
+time=83: passenger 7 completed at C4 (turnaround=78).

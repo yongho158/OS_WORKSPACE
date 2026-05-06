@@ -1,0 +1,5 @@
+scheduler,scheduler_name,ATT,improvement_rate
+fcfs,Baseline A: FCFS,19.52,1.74
+priority,Baseline B: Priority,22.50,14.76
+sjf,Baseline C: Non-preemptive SJF,14.90,-28.72
+ours,Our Scheduler: MLQ + Weighted HRRN + SJF,19.18,0.00

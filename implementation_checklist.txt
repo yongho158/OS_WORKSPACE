@@ -1,0 +1,538 @@
+운영체제 Term Project 구현 체크리스트
+====================================
+
+목표
+----
+- 공항 체크인 카운터 5개를 대상으로 비선점형 멀티레벨 스케줄링 시뮬레이터를 구현한다.
+- 기본 데이터셋(input.txt)으로 직접 설계한 스케줄러와 Baseline 3종의 ATT를 비교한다.
+- 최종보고서에 넣을 승객별 결과, 등급별 평균 Turnaround Time, 카운터별 통계, ATT 비교표/그래프를 생성한다.
+
+
+1. 프로젝트 파일 구성
+--------------------
+권장 파일 구조:
+
+- input.txt
+  - 과제 기본 입력 데이터
+
+- scheduler.py
+  - 전체 시뮬레이터 실행 진입점
+  - 입력 파싱, 스케줄러 선택, 결과 출력 담당
+
+- models.py
+  - Passenger 클래스
+  - Counter 클래스
+  - SimulationResult 또는 ResultRecord 클래스
+
+- simulation.py
+  - 이산 사건 시뮬레이션 엔진
+  - arrival, service_start, completion 상태 변화 처리
+  - 비선점 보장
+
+- strategies.py
+  - SchedulerStrategy 기본 인터페이스
+  - BaselineA_FCFS
+  - BaselineB_Priority
+  - BaselineC_SJF
+  - OurScheduler
+
+- report_utils.py
+  - ATT 계산
+  - 등급별 평균 Turnaround Time 계산
+  - 카운터별 통계 계산
+  - CSV 저장
+  - 그래프 생성
+
+- output/
+  - passenger_results.csv
+  - class_summary.csv
+  - counter_summary.csv
+  - att_comparison.csv
+  - att_comparison.png
+  - simulation_log.txt
+
+
+2. 입력 처리 구현
+-----------------
+구현할 것:
+
+- input.txt 파일 읽기
+- 각 줄을 4개 값으로 파싱
+  - passenger_id
+  - arrival_time
+  - class
+  - service_time
+- class 값 매핑
+  - 1 = First
+  - 2 = Business
+  - 3 = Economy
+- Passenger 객체 리스트 생성
+- arrival_time 오름차순, passenger_id 오름차순으로 정렬
+
+검증할 것:
+
+- 총 승객 수가 50명인지 확인
+- First 8명, Business 11명, Economy 31명인지 확인
+- arrival_time 범위가 0~58인지 확인
+- service_time 값이 정상적으로 들어왔는지 확인
+
+
+3. 데이터 모델 구현
+-------------------
+Passenger 클래스에 필요한 필드:
+
+- passenger_id
+- arrival_time
+- passenger_class
+- service_time
+- service_start_time
+- completion_time
+- turnaround_time
+- assigned_counter_id
+
+Counter 클래스에 필요한 필드:
+
+- counter_id
+- counter_type
+  - C1 = First 전용
+  - C2 = Business 전용
+  - C3 = Economy 전용
+  - C4 = Flex
+  - C5 = Flex
+- current_passenger
+- busy_until
+- processed_passengers
+- total_service_time
+- idle_time
+
+
+4. 시뮬레이션 엔진 구현
+----------------------
+필수 조건:
+
+- 이산 사건 시뮬레이션 방식으로 구현
+- time unit 기준으로 상태 변화 기록
+- 승객이 도착하면 ready queue에 추가
+- 카운터가 비면 스케줄러가 승객 선택
+- 승객이 서비스를 시작하면 완료될 때까지 중단하지 않음
+- Context switching overhead는 0으로 처리
+- 모든 카운터 처리 속도는 동일하게 처리
+
+시뮬레이션 흐름:
+
+1. 현재 시간 time = 0으로 시작
+2. time에 도착한 승객들을 ready queue에 추가
+3. 완료 시간이 된 카운터의 승객을 completion 처리
+4. 비어 있는 카운터마다 SchedulerStrategy.select_next() 호출
+5. 선택된 승객의 service_start_time 기록
+6. completion_time = service_start_time + service_time 계산
+7. 다음 이벤트 시간으로 이동
+   - 다음 승객 도착 시간
+   - 다음 서비스 완료 시간
+8. 모든 승객이 완료될 때까지 반복
+
+로그에 남길 상태 변화:
+
+- 승객 도착
+- 카운터 배정
+- 서비스 시작
+- 서비스 완료
+- 카운터 idle 발생
+
+
+5. SchedulerStrategy 구조 구현
+------------------------------
+공통 인터페이스:
+
+- select_next_passenger(ready_queue, counters, current_time, counter)
+  - 입력:
+    - 현재 대기 중인 승객 목록
+    - 카운터 목록
+    - 현재 시각
+    - 배정 대상 카운터
+  - 출력:
+    - 다음에 처리할 Passenger 1명
+    - 처리할 승객이 없으면 None
+
+주의:
+
+- Baseline과 우리 팀 스케줄러가 같은 SimulationEngine을 사용해야 한다.
+- 스케줄러만 교체 가능한 Strategy Pattern 구조여야 한다.
+- 스케줄러 안에서 승객 완료 시간을 직접 바꾸지 말고, 선택만 담당하게 한다.
+
+
+6. Baseline A 구현: 단순 FCFS
+----------------------------
+정책:
+
+- 모든 승객을 단일 ready queue로 관리
+- 도착 시간이 빠른 승객부터 선택
+- 도착 시간이 같으면 passenger_id가 작은 승객부터 선택
+- 카운터는 빈 카운터 순서대로 배정
+
+정렬 기준:
+
+1. arrival_time 오름차순
+2. passenger_id 오름차순
+
+보고서에 쓸 분석 포인트:
+
+- 단순하고 공정하지만 긴 service_time 승객이 앞에 있으면 Convoy Effect가 발생할 수 있다.
+
+
+7. Baseline B 구현: 등급별 고정 우선순위
+--------------------------------------
+정책:
+
+- First > Business > Economy 순서로 우선 처리
+- 같은 등급 안에서는 FCFS 적용
+- 모든 카운터는 빈 카운터가 되면 가장 높은 우선순위 등급의 승객을 선택
+
+정렬 기준:
+
+1. passenger_class 오름차순
+   - 1 First
+   - 2 Business
+   - 3 Economy
+2. arrival_time 오름차순
+3. passenger_id 오름차순
+
+보고서에 쓸 분석 포인트:
+
+- First/Business 승객의 Turnaround Time은 줄어들 수 있다.
+- Economy 승객은 오래 밀려 전체 ATT가 나빠질 수 있다.
+- Aging이 없으면 Starvation 위험이 있다.
+
+
+8. Baseline C 구현: Non-preemptive SJF
+-------------------------------------
+정책:
+
+- 등급을 무시하고 service_time이 가장 짧은 승객부터 선택
+- 같은 service_time이면 먼저 도착한 승객 선택
+- 그래도 같으면 passenger_id가 작은 승객 선택
+
+정렬 기준:
+
+1. service_time 오름차순
+2. arrival_time 오름차순
+3. passenger_id 오름차순
+
+보고서에 쓸 분석 포인트:
+
+- 평균 Turnaround Time을 줄이는 데 강하다.
+- service_time이 긴 First 승객이 뒤로 밀릴 수 있다.
+- 공정성과 등급 우선 정책 측면에서는 약점이 있다.
+
+
+9. 우리 팀 스케줄러 구현
+-----------------------
+권장 설계 이름:
+
+- Hybrid Multi-Level Queue Scheduler
+- 또는 Weighted HRRN + SJF Scheduler
+
+반드시 포함할 알고리즘 3가지 이상:
+
+- Multi-Level Queue
+- Non-preemptive SJF
+- Priority Scheduling
+- HRRN 또는 Aging
+- FCFS tie-break
+
+권장 큐 구조:
+
+- First Queue
+- Business Queue
+- Economy Queue
+
+권장 카운터 정책:
+
+- C1: First 우선
+- C2: Business 우선
+- C3: Economy 우선
+- C4: Flex
+- C5: Flex
+- 전용 카운터가 자기 등급 승객 없이 idle이면 다른 등급 승객도 처리 허용
+
+승객 선택 점수 예시:
+
+- waiting_time = current_time - arrival_time
+- response_ratio = (waiting_time + service_time) / service_time
+- class_weight:
+  - First = 1.5
+  - Business = 1.1
+  - Economy = 1.0
+- score = response_ratio * class_weight
+- score가 높은 승객 우선
+- 동점이면 service_time 짧은 승객 우선
+- 그래도 동점이면 arrival_time 빠른 승객 우선
+- 그래도 동점이면 passenger_id 작은 승객 우선
+
+설계 의도:
+
+- SJF 성격으로 짧은 작업을 빠르게 처리해 전체 ATT를 낮춘다.
+- Priority 가중치로 First/Business 승객이 지나치게 밀리지 않게 한다.
+- HRRN/Aging으로 오래 기다린 Economy 승객도 eventually 선택되게 한다.
+- FCFS tie-break로 동일 조건에서 공정성을 유지한다.
+
+
+10. 카운터 배정 로직 구현
+-----------------------
+구현할 것:
+
+- idle 상태인 카운터 찾기
+- 카운터별 우선 처리 등급 적용
+- Flex 카운터는 전체 ready queue에서 스케줄러 점수가 가장 높은 승객 선택
+- 전용 카운터는 다음 순서로 선택
+  1. 자기 전용 등급 승객이 있으면 그 등급 큐에서 선택
+  2. 자기 전용 등급 승객이 없으면 전체 큐에서 선택
+  3. 선택 가능한 승객이 없으면 idle 유지
+
+주의:
+
+- 전용 카운터의 타 등급 처리 허용 여부는 보고서에 명확히 설명해야 한다.
+- ATT가 유일한 성능 지표이므로 idle 시간을 줄이는 정책이 유리하다.
+
+
+11. 결과 계산 구현
+------------------
+승객별 계산:
+
+- service_start_time
+- completion_time
+- turnaround_time = completion_time - arrival_time
+- assigned_counter_id
+
+등급별 계산:
+
+- First 평균 Turnaround Time
+- Business 평균 Turnaround Time
+- Economy 평균 Turnaround Time
+
+전체 계산:
+
+- ATT = 모든 승객 turnaround_time 합 / 50
+
+카운터별 계산:
+
+- 처리 승객 수
+- 총 처리 시간
+- idle time
+- 처리한 승객 ID 목록
+
+
+12. 출력 파일 구현
+------------------
+필수 출력:
+
+- 콘솔 출력
+  - 스케줄러별 전체 ATT
+  - 등급별 평균 Turnaround Time
+
+- passenger_results.csv
+  - passenger_id
+  - class
+  - arrival_time
+  - service_time
+  - service_start_time
+  - completion_time
+  - turnaround_time
+  - assigned_counter_id
+
+- class_summary.csv
+  - class
+  - passenger_count
+  - average_turnaround_time
+
+- counter_summary.csv
+  - counter_id
+  - counter_type
+  - processed_count
+  - total_service_time
+  - idle_time
+
+- att_comparison.csv
+  - scheduler_name
+  - ATT
+  - improvement_rate
+
+- simulation_log.txt
+  - 시간별 상태 변화 로그
+
+
+13. 그래프 생성 구현
+--------------------
+최종보고서에 넣을 그래프:
+
+- Baseline A, Baseline B, Baseline C, 우리 팀 스케줄러의 ATT 막대그래프
+
+권장 파일:
+
+- output/att_comparison.png
+
+그래프에 포함할 것:
+
+- x축: 스케줄러 이름
+- y축: ATT
+- 각 막대 위에 ATT 값 표시
+- 제목: Average Turnaround Time Comparison
+
+
+14. 실행 옵션 구현
+------------------
+권장 실행 방식:
+
+python scheduler.py input.txt --scheduler all
+
+지원하면 좋은 옵션:
+
+- --scheduler fcfs
+- --scheduler priority
+- --scheduler sjf
+- --scheduler ours
+- --scheduler all
+- --output output
+
+예시:
+
+python scheduler.py input.txt --scheduler all --output output
+
+
+15. 테스트 및 검증
+------------------
+최소 검증 항목:
+
+- input.txt 50명이 모두 completion 처리되는지 확인
+- completion_time이 service_start_time + service_time과 같은지 확인
+- turnaround_time이 completion_time - arrival_time과 같은지 확인
+- 어떤 승객도 service_start_time 이후 중간에 중단되지 않는지 확인
+- 같은 SimulationEngine에서 스케줄러만 바꿔 결과가 생성되는지 확인
+- output 폴더에 CSV와 PNG가 생성되는지 확인
+
+추가 검증 항목:
+
+- 동일 arrival_time 승객 처리 순서 확인
+- ready queue가 비어 있고 카운터가 idle인 시간 처리 확인
+- 마지막 승객 완료 후 시뮬레이션 종료 확인
+- 카운터별 총 처리 시간 합이 전체 service_time 합 379와 같은지 확인
+
+
+16. 보고서에 들어갈 구현 설명 준비
+---------------------------------
+보고서 2장에 넣을 내용:
+
+- 전체 시스템 구조도
+- SimulationEngine 설명
+- SchedulerStrategy 설명
+- Baseline 스케줄러 설명
+- 우리 팀 스케줄러 설명
+- 핵심 알고리즘 의사코드
+- 실행 방법
+
+의사코드에 포함할 것:
+
+- 이벤트 시간 진행
+- ready queue 추가
+- idle counter 탐색
+- scheduler.select_next_passenger 호출
+- service_start_time, completion_time 기록
+- ATT 계산
+
+
+17. 보고서에 들어갈 비교 분석 준비
+---------------------------------
+Baseline 비교표에 넣을 값:
+
+- Baseline A: FCFS ATT
+- Baseline B: Priority ATT
+- Baseline C: Non-preemptive SJF ATT
+- 우리 팀 스케줄러 ATT
+- Baseline 대비 개선율
+
+개선율 계산:
+
+- improvement_rate = (baseline_ATT - our_ATT) / baseline_ATT * 100
+
+분석해야 할 내용:
+
+- 우리 스케줄러가 FCFS보다 좋은지/나쁜지
+- 우리 스케줄러가 Priority보다 좋은지/나쁜지
+- 우리 스케줄러가 SJF보다 좋은지/나쁜지
+- 전체 ATT와 등급별 평균 Turnaround Time 사이의 trade-off
+
+
+18. Trade-off 분석 준비
+----------------------
+반드시 언급할 것:
+
+- ATT를 줄이기 위해 어떤 등급의 대기 시간이 늘어났는지
+- First/Business/Economy 간 평균 Turnaround Time 차이
+- SJF 성격이 강하면 긴 service_time 승객이 손해를 볼 수 있음
+- Priority 성격이 강하면 Economy 승객이 손해를 볼 수 있음
+- HRRN/Aging은 starvation을 줄이지만 순수 SJF보다 ATT가 조금 증가할 수 있음
+- Flex 카운터를 적극 활용하면 idle time은 줄지만 전용 카운터의 의미가 약해질 수 있음
+
+
+19. 최종 제출물 준비
+-------------------
+최종적으로 필요한 것:
+
+- 구현 코드
+- input.txt
+- output 결과 파일
+- 최종보고서 PDF
+- 발표동영상
+
+보고서에 반드시 들어가야 하는 것:
+
+- 설계 개요
+- 큐 아키텍처
+- 알고리즘 조합 근거
+- 카운터 배정 전략
+- 시스템 구조
+- 실행 방법
+- 승객별 결과표
+- 등급별 평균 Turnaround Time
+- 카운터별 통계
+- Baseline ATT 비교표
+- ATT 비교 그래프
+- Trade-off 분석
+- 역할 분담
+- 생성형 AI 활용 경험
+- 결론
+
+
+20. 구현 우선순위
+----------------
+1순위:
+
+- input.txt 파싱
+- Passenger, Counter 모델
+- SimulationEngine
+- Baseline A FCFS
+
+2순위:
+
+- Baseline B Priority
+- Baseline C SJF
+- 결과 계산
+- CSV 출력
+
+3순위:
+
+- 우리 팀 스케줄러
+- 카운터별 통계
+- simulation_log.txt
+
+4순위:
+
+- ATT 비교표
+- 그래프 생성
+- 보고서용 결과 정리
+
+5순위:
+
+- 코드 정리
+- 실행 방법 문서화
+- 최종보고서 작성
