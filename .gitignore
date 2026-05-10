@@ -18,3 +18,9 @@ env/
 Thumbs.db
 .DS_Store
 ~$*.docx
+
+# Local assignment/report artifacts; keep out of GitHub.
+운영체제설계과제물(2026년).pdf
+운영체제최종보고서_작성본.docx
+운영체제최종보고서_작성본_검토수정.docx
+운영체제최종보고서서식(2026년).docx
