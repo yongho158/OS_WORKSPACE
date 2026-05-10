@@ -1,12 +1,12 @@
 # 운영체제 설계 과제
 
-공항 체크인 카운터를 대상으로 여러 스케줄링 전략을 비교하는 운영체제 설계 프로젝트입니다.
+공항 체크인 카운터를 대상으로 여러 비선점형 스케줄링 전략의 Average Turnaround Time(ATT)을 비교하는 Python 프로젝트입니다.
 
 ## 구성
 
 - `scheduler.py`: 입력 파일 파싱, 스케줄러 실행, 결과 파일 생성
 - `simulation.py`: 체크인 시뮬레이션 엔진
-- `strategies.py`: FCFS, Priority, SJF, 제안 스케줄러 구현
+- `strategies.py`: FCFS, Priority, SJF, 팀 스케줄러 구현
 - `models.py`: 승객, 카운터, 시뮬레이션 결과 모델
 - `report_utils.py`: CSV/PNG 결과 생성 유틸리티
 - `generate_final_report.py`: 최종 보고서 문서 생성 스크립트
@@ -27,7 +27,19 @@ python scheduler.py input.txt --scheduler fcfs --output output
 python scheduler.py input.txt --scheduler priority --output output
 python scheduler.py input.txt --scheduler sjf --output output
 python scheduler.py input.txt --scheduler ours --output output
+python scheduler.py input.txt --scheduler ours_class --output output
 ```
+
+- `ours`: C4/C5 flex 카운터가 전체 ready queue에서 Weighted HRRN 점수가 가장 높은 승객을 선택합니다.
+- `ours_class`: C4/C5 flex 카운터가 First, Business, Economy 순으로 우선 선택하고 같은 등급 안에서 Weighted HRRN 점수가 가장 높은 승객을 선택합니다.
+- `all`: baseline 3종과 flex 카운터 2개 버전을 모두 실행합니다.
+
+## 주요 산출물
+
+- `output/att_comparison.csv`: 전체 스케줄러 ATT 비교표
+- `output/att_comparison.png`: 전체 스케줄러 ATT 비교 그래프
+- `output/flex_policy_att_comparison.csv`: 회의록 5번 문항의 두 flex 정책 ATT 비교표
+- `output/flex_policy_att_comparison.md`: 회의록 5번 문항의 두 flex 정책 선택 근거 요약
 
 ## 테스트
 

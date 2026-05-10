@@ -1,0 +1,6 @@
+counter_id,counter_type,processed_count,total_service_time,idle_time,processed_passenger_ids
+C1,First,10,82,0,2 9 19 20 32 18 46 35 43 49
+C2,Business,10,76,6,1 8 11 24 33 42 47 44 28 50
+C3,Economy,14,79,3,3 6 10 15 12 17 25 22 34 13 38 31 48 45
+C4,Flex,8,71,11,4 14 16 21 37 30 23 39
+C5,Flex,8,71,11,5 7 26 29 40 27 41 36

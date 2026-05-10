@@ -1,0 +1,4 @@
+class,class_name,passenger_count,average_turnaround_time
+1,First,8,13.38
+2,Business,11,15.36
+3,Economy,31,24.55

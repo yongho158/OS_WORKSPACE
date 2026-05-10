@@ -16,6 +16,14 @@ CLASS_WEIGHTS = {
     ECONOMY: 1.0,
 }
 
+FLEX_POLICY_WEIGHTED_HRRN = "weighted_hrrn"
+FLEX_POLICY_CLASS_THEN_HRRN = "class_then_hrrn"
+
+FLEX_POLICY_NAMES = {
+    FLEX_POLICY_WEIGHTED_HRRN: "Weighted HRRN",
+    FLEX_POLICY_CLASS_THEN_HRRN: "Class priority + HRRN",
+}
+
 
 def _get_value(obj: Any, names: Iterable[str], default: Any = None) -> Any:
     """Read a value from either an object model or a dict-like model."""
@@ -224,6 +232,11 @@ class OurScheduler(SchedulerStrategy):
     - HRRN/Aging: waiting time increases the response ratio.
     - SJF tie-break: shorter service time wins when scores are equal.
     - FCFS tie-break: earlier arrival and lower ID win after that.
+
+    Flex counters can use either:
+    - weighted_hrrn: highest class_weight * HRRN score across all classes.
+    - class_then_hrrn: First, Business, Economy priority first, then highest
+      weighted HRRN score within the same class.
     """
 
     name = "Our Scheduler: MLQ + Weighted HRRN + SJF"
@@ -232,9 +245,16 @@ class OurScheduler(SchedulerStrategy):
         self,
         class_weights: dict[int, float] | None = None,
         allow_dedicated_counter_borrowing: bool = True,
+        flex_policy: str = FLEX_POLICY_WEIGHTED_HRRN,
     ) -> None:
+        if flex_policy not in FLEX_POLICY_NAMES:
+            valid_policies = ", ".join(sorted(FLEX_POLICY_NAMES))
+            raise ValueError(f"Unsupported flex_policy: {flex_policy}. Expected one of: {valid_policies}.")
+
         self.class_weights = dict(CLASS_WEIGHTS if class_weights is None else class_weights)
         self.allow_dedicated_counter_borrowing = allow_dedicated_counter_borrowing
+        self.flex_policy = flex_policy
+        self.name = f"Our Scheduler: {FLEX_POLICY_NAMES[flex_policy]}"
 
     def select_next_passenger(
         self,
@@ -250,6 +270,9 @@ class OurScheduler(SchedulerStrategy):
         candidate_pool = self._candidate_pool_for_counter(class_queues, ready_queue, counter)
         if not candidate_pool:
             return None
+
+        if self._uses_flex_class_priority(counter):
+            return max(candidate_pool, key=lambda passenger: self._flex_class_then_hrrn_key(passenger, current_time))
 
         return max(candidate_pool, key=lambda passenger: self._selection_key(passenger, current_time))
 
@@ -292,6 +315,18 @@ class OurScheduler(SchedulerStrategy):
             -service_time,
             -_arrival_time(passenger),
             _reverse_id_key(passenger),
+        )
+
+    def _uses_flex_class_priority(self, counter: Any) -> bool:
+        return (
+            self.flex_policy == FLEX_POLICY_CLASS_THEN_HRRN
+            and _counter_preferred_class(counter) is None
+        )
+
+    def _flex_class_then_hrrn_key(self, passenger: Any, current_time: int) -> tuple[Any, ...]:
+        return (
+            -_passenger_class(passenger),
+            *self._selection_key(passenger, current_time),
         )
 
 

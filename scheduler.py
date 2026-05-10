@@ -9,10 +9,22 @@ from typing import Iterable
 from models import BUSINESS, CLASS_NAMES, ECONOMY, FIRST, Passenger, SimulationResult
 from report_utils import write_att_comparison_png
 from simulation import SimulationEngine
-from strategies import BaselineA_FCFS, BaselineB_Priority, BaselineC_SJF, OurScheduler, SchedulerStrategy
+from strategies import (
+    FLEX_POLICY_CLASS_THEN_HRRN,
+    FLEX_POLICY_WEIGHTED_HRRN,
+    BaselineA_FCFS,
+    BaselineB_Priority,
+    BaselineC_SJF,
+    OurScheduler,
+    SchedulerStrategy,
+)
 
 
-SCHEDULER_ORDER = ("fcfs", "priority", "sjf", "ours")
+OURS_WEIGHTED = "ours"
+OURS_WEIGHTED_ALIAS = "ours_weighted"
+OURS_CLASS = "ours_class"
+OUR_SCHEDULER_ORDER = (OURS_WEIGHTED, OURS_CLASS)
+SCHEDULER_ORDER = ("fcfs", "priority", "sjf", *OUR_SCHEDULER_ORDER)
 
 
 def parse_input_file(input_path: Path) -> list[Passenger]:
@@ -64,9 +76,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--scheduler",
-        choices=(*SCHEDULER_ORDER, "all"),
+        choices=(*SCHEDULER_ORDER, OURS_WEIGHTED_ALIAS, "all"),
         default="all",
-        help="scheduler to run: fcfs, priority, sjf, ours, or all. Default: all",
+        help=(
+            "scheduler to run: fcfs, priority, sjf, ours, "
+            "ours_weighted, ours_class, or all. Default: all"
+        ),
     )
     parser.add_argument(
         "--output",
@@ -80,6 +95,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
 def selected_scheduler_names(selection: str) -> list[str]:
     if selection == "all":
         return list(SCHEDULER_ORDER)
+    if selection == OURS_WEIGHTED_ALIAS:
+        return [OURS_WEIGHTED]
     return [selection]
 
 
@@ -90,8 +107,10 @@ def create_scheduler(name: str) -> SchedulerStrategy:
         return BaselineB_Priority()
     if name == "sjf":
         return BaselineC_SJF()
-    if name == "ours":
-        return OurScheduler()
+    if name in {OURS_WEIGHTED, OURS_WEIGHTED_ALIAS}:
+        return OurScheduler(flex_policy=FLEX_POLICY_WEIGHTED_HRRN)
+    if name == OURS_CLASS:
+        return OurScheduler(flex_policy=FLEX_POLICY_CLASS_THEN_HRRN)
 
     raise ValueError(f"Unsupported scheduler: {name}")
 
@@ -123,8 +142,9 @@ def write_outputs(
     _write_class_summary(canonical_result, output_dir / "class_summary.csv")
     _write_counter_summary(canonical_result, output_dir / "counter_summary.csv")
     _write_simulation_log(canonical_result, output_dir / "simulation_log.txt")
-    _write_att_comparison(results, output_dir / "att_comparison.csv")
-    write_att_comparison_png(results, output_dir, our_scheduler_name="ours")
+    _write_att_comparison(results, output_dir / "att_comparison.csv", canonical_scheduler)
+    write_att_comparison_png(results, output_dir, our_scheduler_name=canonical_scheduler)
+    _write_flex_policy_comparison(results, output_dir, canonical_scheduler)
 
 
 def print_summary(results: dict[str, SimulationResult]) -> None:
@@ -153,7 +173,7 @@ def main(argv: Iterable[str] | None = None) -> int:
         for scheduler_name in scheduler_names
     }
 
-    canonical_scheduler = "ours" if "ours" in results else scheduler_names[-1]
+    canonical_scheduler = _select_canonical_scheduler(results, scheduler_names)
     write_outputs(results, args.output, canonical_scheduler)
     print_summary(results)
     print(f"output_dir: {args.output}")
@@ -287,8 +307,26 @@ def _write_simulation_log(result: SimulationResult, output_path: Path) -> None:
             file.write("\n")
 
 
-def _write_att_comparison(results: dict[str, SimulationResult], output_path: Path) -> None:
-    our_att = results["ours"].average_turnaround_time if "ours" in results else None
+def _select_canonical_scheduler(
+    results: dict[str, SimulationResult],
+    scheduler_names: list[str],
+) -> str:
+    our_results = [scheduler_name for scheduler_name in OUR_SCHEDULER_ORDER if scheduler_name in results]
+    if our_results:
+        return min(our_results, key=lambda scheduler_name: results[scheduler_name].average_turnaround_time)
+
+    if "ours" in results:
+        return "ours"
+
+    return scheduler_names[-1]
+
+
+def _write_att_comparison(
+    results: dict[str, SimulationResult],
+    output_path: Path,
+    comparison_scheduler: str,
+) -> None:
+    comparison_att = results[comparison_scheduler].average_turnaround_time if comparison_scheduler in results else None
 
     with output_path.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(
@@ -298,14 +336,15 @@ def _write_att_comparison(results: dict[str, SimulationResult], output_path: Pat
                 "scheduler_name",
                 "ATT",
                 "improvement_rate",
+                "comparison_scheduler",
             ],
         )
         writer.writeheader()
         for scheduler_name, result in results.items():
             att = result.average_turnaround_time
             improvement = ""
-            if our_att is not None and att:
-                improvement = f"{((att - our_att) / att * 100):.2f}"
+            if comparison_att is not None and att:
+                improvement = f"{((att - comparison_att) / att * 100):.2f}"
 
             writer.writerow(
                 {
@@ -313,8 +352,73 @@ def _write_att_comparison(results: dict[str, SimulationResult], output_path: Pat
                     "scheduler_name": create_scheduler(scheduler_name).name,
                     "ATT": f"{att:.2f}",
                     "improvement_rate": improvement,
+                    "comparison_scheduler": comparison_scheduler,
                 }
             )
+
+
+def _write_flex_policy_comparison(
+    results: dict[str, SimulationResult],
+    output_dir: Path,
+    canonical_scheduler: str,
+) -> None:
+    flex_results = {
+        scheduler_name: results[scheduler_name]
+        for scheduler_name in OUR_SCHEDULER_ORDER
+        if scheduler_name in results
+    }
+    if len(flex_results) < 2:
+        return
+
+    rows = []
+    for scheduler_name, result in flex_results.items():
+        averages = result.average_turnaround_by_class()
+        rows.append(
+            {
+                "scheduler": scheduler_name,
+                "flex_policy": create_scheduler(scheduler_name).name,
+                "ATT": f"{result.average_turnaround_time:.2f}",
+                "First_ATT": f"{averages[FIRST]:.2f}",
+                "Business_ATT": f"{averages[BUSINESS]:.2f}",
+                "Economy_ATT": f"{averages[ECONOMY]:.2f}",
+                "selected": "yes" if scheduler_name == canonical_scheduler else "no",
+            }
+        )
+
+    csv_path = output_dir / "flex_policy_att_comparison.csv"
+    with csv_path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "scheduler",
+                "flex_policy",
+                "ATT",
+                "First_ATT",
+                "Business_ATT",
+                "Economy_ATT",
+                "selected",
+            ],
+        )
+        writer.writeheader()
+        writer.writerows(rows)
+
+    markdown_path = output_dir / "flex_policy_att_comparison.md"
+    with markdown_path.open("w", encoding="utf-8") as file:
+        file.write("# Flex Counter Policy ATT Comparison\n\n")
+        file.write("This artifact compares the two C4/C5 flex-counter policies from meeting item 5.\n\n")
+        file.write("| Scheduler | Flex policy | ATT | First ATT | Business ATT | Economy ATT | Selected |\n")
+        file.write("| --- | --- | ---: | ---: | ---: | ---: | --- |\n")
+        for row in rows:
+            file.write(
+                "| {scheduler} | {flex_policy} | {ATT} | {First_ATT} | "
+                "{Business_ATT} | {Economy_ATT} | {selected} |\n".format(**row)
+            )
+
+        selected_row = next(row for row in rows if row["selected"] == "yes")
+        file.write(
+            f"\nSelected policy: `{selected_row['scheduler']}` "
+            f"because it has the lower ATT ({selected_row['ATT']}).\n"
+        )
 
 
 if __name__ == "__main__":
