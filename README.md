@@ -9,7 +9,6 @@
 - `strategies.py`: FCFS, Priority, SJF, 팀 스케줄러 구현
 - `models.py`: 승객, 카운터, 시뮬레이션 결과 모델
 - `report_utils.py`: CSV/PNG 결과 생성 유틸리티
-- `generate_final_report.py`: 최종 보고서 문서 생성 스크립트
 - `input.txt`: 시뮬레이션 입력 데이터
 - `output/`: 실행 결과 CSV, 로그, 비교 이미지
 - `docs/`: 코드 및 실행 흐름 설명 문서
